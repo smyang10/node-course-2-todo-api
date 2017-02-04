@@ -34,16 +34,16 @@ app.get('/todos/:id', (req, res) => {
 
   // if invalid Id, send back 404
   if(!ObjectID.isValid(id)){
-    return res.status(404).send('Not a valid object id');
+    return res.status(404).send();
   }
   // findbyid, success -> send back todo, or send back 404, error -> 404 empty body
   Todo.findById(id).then((todo) => {
     if(!todo){
-      return res.status(404).send(`Todo ${id} does not exist`);
+      return res.status(404).send();
     }
-    return res.status(200).send({todo});
+    res.send({todo});
   }).catch((err) => {
-    return res.status(404).send({});
+    res.status(404).send();
   });
 });
 
