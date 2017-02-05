@@ -1,3 +1,17 @@
+var env = process.env.NODE_ENV || 'development';
+
+console.log('env ***********', env);
+if(env === 'development'){
+  process.env.PORT = 3000;
+  process.env.MONGODB_URI = 'mongodb://localhost:27017/TodoApp';
+  console.log('db ***********', process.env.MONGODB_URI);
+} else if(env === 'test'){
+  process.env.PORT = 3000;
+  process.env.MONGODB_URI = 'mongodb://localhost:27017/TodoAppTest';
+  console.log('db ***********', process.env.MONGODB_URI);
+}
+
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const _ = require('lodash');
@@ -8,7 +22,7 @@ var {User} = require('./models/user');
 var {ObjectID} = require('mongodb');
 
 var app = express();
-const port = process.env.PORT  || 3000;
+const port = process.env.PORT;
 
 app.use(bodyParser.json());
 app.post('/todos', (req, res) => {
