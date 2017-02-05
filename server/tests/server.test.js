@@ -112,10 +112,15 @@ describe('DELETE/todos/:id', () => {
         if(err){
           return done(err);
         }
-        Todo.find().then((todos) => {
-          expect(todos.length).toBe(1);
+        // Todo.find().then((todos) => {
+        //   expect(todos).toNotExist()
+        //     .expect(todos.length).toBe(1)
+        //     .done();
+        Todo.findById(id).then((todo) => {
+          expect(todo).toNotExist();
           done();
         }).catch((err) => done(err));
+
       });
   });
 
