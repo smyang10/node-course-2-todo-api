@@ -98,8 +98,26 @@ app.patch('/todos/:id', (req, res) => {
     }
     res.send({todo});
   }).catch((err) => res.send(400).send());
+});
+
+// Create user
+app.post('/users', (req, res) => {
+  // console.log(req.body);
+  var body = _.pick(req.body, ['email', 'password']);
+  var user = new User(body);
 
 
+  user.save().then(() => {
+    return user.generateAuthToken();
+  }).then((token) => {
+    res.header('x-auth', token).send(user);
+  }).catch((err) => {
+    if(err.code == 11000){
+      res.status(400).send(`User ${user.email} already exists!`);
+    } else {
+      res.status(400).send(err);
+    }
+  });
 });
 
 app.listen(port, () => {
