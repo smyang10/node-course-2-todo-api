@@ -4,6 +4,7 @@ const {ObjectID} = require('mongodb');
 
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {User} = require('./../models/user');
 
 const todos = [{
   _id: new ObjectID(),
@@ -16,9 +17,11 @@ const todos = [{
 }];
 
 beforeEach((done) => {
-  Todo.remove({}).then(() => {
-    Todo.insertMany(todos);
-  }).then(() => done());
+  User.remove({}).then(() => {
+    Todo.remove({}).then(() => {
+      Todo.insertMany(todos);
+    }).then(() => done());
+  });
 });
 
 describe('POST/todos', () => {
@@ -178,3 +181,32 @@ describe('PATCH/todos/:id', () => {
       }).end(done);
   });
 });
+
+describe('POST/users', () => {
+  it('should create a new user', (done) => {
+    var email = 'test@gmail.com';
+    var password = '123456!';
+    var id = '';
+    request(app)
+      .post('/users')
+      .send({
+        email,
+        password
+      })
+      .expect(200)
+      .expect((res) => {
+        id = res.body._id;
+        expect(res.body._id).toBe(id);
+        expect(res.body.email).toBe(email);
+      }).end((err, res) => {
+        if(err){
+          return done(err);
+        }
+
+        User.findById(id).then((user) => {
+          expect(user.email).toBe(email);
+          done();
+        }).catch((err) => done(err));
+      });
+  });
+})
