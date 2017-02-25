@@ -3,28 +3,24 @@ const request = require('supertest');
 const {ObjectID} = require('mongodb');
 
 const {app} = require('./../server');
+const {todos, users, populateTodos, populateUsers} = require('./seed/seed');
 const {Todo} = require('./../models/todo');
 const {User} = require('./../models/user');
 
-const todos = [{
-  _id: new ObjectID(),
-  text: 'First test todo'
-}, {
-  _id: new ObjectID(),
-  text: 'Second test todo',
-  completed: true,
-  completedAt: 333
-}];
+// const todos = [{
+//   _id: new ObjectID(),
+//   text: 'First test todo'
+// }, {
+//   _id: new ObjectID(),
+//   text: 'Second test todo',
+//   completed: true,
+//   completedAt: 333
+// }];
 
-beforeEach((done) => {
-  User.remove({}).then(() => {
-    Todo.remove({}).then(() => {
-      Todo.insertMany(todos);
-    }).then(() => done());
-  });
-});
+beforeEach(populateTodos);
+beforeEach(populateUsers);
 
-describe('POST/todos', () => {
+describe('POST /todos', () => {
   it('should create a new todo', (done) => {
     var text = 'Test todo text';
 
@@ -67,7 +63,7 @@ describe('POST/todos', () => {
 });
 
 
-describe('GET/todos', () => {
+describe('GET /todos', () => {
   it('should get all todos', (done) => {
     request(app)
       .get('/todos')
@@ -79,7 +75,7 @@ describe('GET/todos', () => {
   });
 });
 
-describe('GET/todos/:id', () => {
+describe('GET /todos/:id', () => {
   it('should get todo doc by id', (done) => {
     request(app)
       .get(`/todos/${todos[0]._id.toHexString()}`)
@@ -104,7 +100,7 @@ describe('GET/todos/:id', () => {
   });
 });
 
-describe('DELETE/todos/:id', () => {
+describe('DELETE /todos/:id', () => {
   it('should delete by id', (done) => {
     var id = todos[0]._id.toHexString();
     request(app)
@@ -146,7 +142,7 @@ describe('DELETE/todos/:id', () => {
 });
 
 
-describe('PATCH/todos/:id', () => {
+describe('PATCH /todos/:id', () => {
   it('should update todo', (done) => {
     var id = todos[0]._id.toHexString();
     var text = 'Updated from test'
@@ -182,31 +178,71 @@ describe('PATCH/todos/:id', () => {
   });
 });
 
-describe('POST/users', () => {
+describe('POST /users', () => {
   it('should create a new user', (done) => {
     var email = 'test@gmail.com';
     var password = '123456!';
-    var id = '';
+
     request(app)
       .post('/users')
-      .send({
-        email,
-        password
-      })
+      .send({email,password})
       .expect(200)
       .expect((res) => {
-        id = res.body._id;
-        expect(res.body._id).toBe(id);
+        expect(res.header['x-auth']).toExist();
+        expect(res.body._id).toExist();
         expect(res.body.email).toBe(email);
-      }).end((err, res) => {
+      }).end((err) => {
         if(err){
           return done(err);
         }
-
-        User.findById(id).then((user) => {
+        User.findOne({email}).then((user) => {
+          expect(user).toExist();
+          expect(user.password).toNotBe(password);
           expect(user.email).toBe(email);
           done();
         }).catch((err) => done(err));
       });
   });
+
+  it('should return validation errors if request is invalid', (done) => {
+    request(app)
+      .post('/users')
+      .send({email: 'thisisnotanemail', password: '123'})
+      .expect(400)
+      .end(done);
+  });
+
+  it('should not create a duplicate user', (done) => {
+    var email = users[0].email;
+
+    request(app)
+      .post('/users')
+      .send({email: users[0].email, password: '1234567!'})
+      .expect(400)
+      .end(done);
+  });
 })
+
+describe('GET /users/me', () => {
+  it('should get my user if authenticated', (done) => {
+    request(app)
+      .get('/users/me')
+      .set('x-auth', users[0].tokens[0].token)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body._id).toBe(users[0]._id.toHexString());
+        expect(res.body.email).toBe(users[0].email);
+      })
+      .end(done);
+  });
+
+  it('should return 401 if not authenticated', (done) => {
+    request(app)
+      .get('/users/me')
+      .expect(401)
+      .expect((res) => {
+        expect(res.body).toEqual({});
+      })
+      .end(done);
+  });
+});
