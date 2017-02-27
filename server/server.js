@@ -5,6 +5,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const _ = require('lodash');
 const {ObjectID} = require('mongodb');
+const bcrypt = require('bcryptjs');
 
 
 var {mongoose} = require('./db/mongoose');
@@ -121,6 +122,35 @@ app.post('/users', (req, res) => {
       res.status(400).send(err);
     }
   });
+});
+
+// Login user
+app.post('/users/login', (req, res) => {
+  var login = _.pick(req.body, ['email', 'password']);
+
+  User.findByCredentials(login.email, login.password).then((user) => {
+    return user.generateAuthToken().then((token) => {
+      res.header('x-auth', token).send(user);
+    })
+  }).catch((err) => {
+    res.status(400).send();
+  });
+
+  // User.findOne({email: login.email}).then((user, err) => {
+  //   if(!user){
+  //     return res.status(400).send(err);
+  //   }
+  //   bcrypt.compare(login.password, user.password).then((result) => {
+  //     if(result){
+  //       return res.send({user});
+  //     }
+  //     res.status(400).send();
+  //   });
+  //
+  // }).catch((err) => {
+  //   res.status(400).send(err);
+  // });
+
 });
 
 // var authenticate = (req, res, next) => {
